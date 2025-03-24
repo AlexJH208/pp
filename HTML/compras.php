@@ -1,3 +1,7 @@
+<?php
+// Incluir archivo de conexión
+require_once 'conexion.php';
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -50,7 +54,24 @@
                                     </tr>
                                 </thead>
                                 <tbody id="compras-table">
-                                    <!-- Los datos se cargarán dinámicamente -->
+                                    <?php
+                                    // Consulta de compras
+                                    $result = $conn->query("SELECT * FROM compras_proveedores");
+                                    
+                                    if ($result) {
+                                        while ($compra = $result->fetch_assoc()) {
+                                            echo "<tr>";
+                                            echo "<td>" . $compra['id_compra'] . "</td>";
+                                            echo "<td>" . $compra['id_proveedor'] . "</td>";
+                                            echo "<td>" . $compra['fecha'] . "</td>";
+                                            echo "<td>" . $compra['id_producto'] . "</td>";
+                                            echo "<td>" . $compra['cantidad'] . "</td>";
+                                            echo "<td>$" . number_format($compra['costo_unitario'], 2) . "</td>";
+                                            echo "<td>$" . number_format($compra['total'], 2) . "</td>";
+                                            echo "</tr>";
+                                        }
+                                    }
+                                    ?>
                                 </tbody>
                             </table>
                         </div>
@@ -93,66 +114,55 @@
             document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
         }
         
-        // Cargar datos
-        fetch('datos.php')
-            .then(response => response.json())
-            .then(data => {
-                // Llenar tabla de compras
-                const comprasTable = document.getElementById('compras-table');
-                comprasTable.innerHTML = data.compras.map(compra => `
-                    <tr>
-                        <td>${compra.id_compra}</td>
-                        <td>${compra.id_proveedor}</td>
-                        <td>${compra.fecha}</td>
-                        <td>${compra.id_producto}</td>
-                        <td>${compra.cantidad}</td>
-                        <td>$${parseFloat(compra.costo_unitario).toFixed(2)}</td>
-                        <td>$${parseFloat(compra.total).toFixed(2)}</td>
-                    </tr>
-                `).join('');
-                
-                // Crear gráfico de compras
-                const comprasChart = document.getElementById('compras-chart').getContext('2d');
-                
-                // Agrupar compras por proveedor
-                const comprasPorProveedor = {};
-                data.compras.forEach(compra => {
-                    if (comprasPorProveedor[compra.id_proveedor]) {
-                        comprasPorProveedor[compra.id_proveedor] += parseFloat(compra.total);
-                    } else {
-                        comprasPorProveedor[compra.id_proveedor] = parseFloat(compra.total);
-                    }
-                });
-                
-                new Chart(comprasChart, {
-                    type: 'bar',
-                    data: {
-                        labels: Object.keys(comprasPorProveedor).map(id => `Proveedor ${id}`),
-                        datasets: [{
-                            label: 'Total de Compras',
-                            data: Object.values(comprasPorProveedor),
-                            backgroundColor: '#82ca9d',
-                            borderColor: '#3cba9f',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    callback: function(value) {
-                                        return '$' + value;
-                                    }
-                                }
+        // Crear gráfico de compras
+        <?php
+        // Consulta de compras para el gráfico
+        $result = $conn->query("
+            SELECT id_proveedor, SUM(total) AS total
+            FROM compras_proveedores
+            GROUP BY id_proveedor
+        ");
+        
+        $comprasPorProveedor = [];
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $comprasPorProveedor["Proveedor " . $row['id_proveedor']] = floatval($row['total']);
+            }
+        }
+        
+        // Cerrar conexión
+        $conn->close();
+        ?>
+        
+        const comprasChart = document.getElementById('compras-chart').getContext('2d');
+        
+        new Chart(comprasChart, {
+            type: 'bar',
+            data: {
+                labels: <?php echo json_encode(array_keys($comprasPorProveedor)); ?>,
+                datasets: [{
+                    label: 'Total de Compras',
+                    data: <?php echo json_encode(array_values($comprasPorProveedor)); ?>,
+                    backgroundColor: '#82ca9d',
+                    borderColor: '#3cba9f',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value;
                             }
                         }
                     }
-                });
-            })
-            .catch(error => console.error('Error al cargar los datos:', error));
+                }
+            }
+        });
     </script>
 </body>
 </html>
