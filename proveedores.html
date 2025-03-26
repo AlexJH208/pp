@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proveedores - Sistema de Punto de Venta</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 para confirmaciones y alertas -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <i class="fas fa-cash-register"></i>
+                Sistema de Punto de Venta
+            </a>
+            <nav>
+                <a href="ventas.html">
+                    <i class="fas fa-chart-line"></i>
+                    Ventas
+                </a>
+                <a href="productos.html">
+                    <i class="fas fa-box"></i>
+                    Productos
+                </a>
+                <a href="proveedores.html" class="active">
+                    <i class="fas fa-truck"></i>
+                    Proveedores
+                </a>
+                <a href="compras.html">
+                    <i class="fas fa-shopping-cart"></i>
+                    Compras
+                </a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div class="action-bar">
+                <h2><i class="fas fa-truck"></i> Gestión de Proveedores</h2>
+                <button class="btn btn-primary" onclick="mostrarFormularioCrear()">
+                    <i class="fas fa-plus"></i> Nuevo Proveedor
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Lista de Proveedores</h2>
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="buscar-proveedor" placeholder="Buscar proveedor..." onkeyup="filtrarProveedores()">
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div id="loading-proveedores" class="loading">
+                        <i class="fas fa-spinner"></i>
+                        <span>Cargando datos...</span>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Teléfono</th>
+                                    <th>Dirección</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="proveedores-table">
+                                <!-- Los datos se cargarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Formulario para crear/editar proveedor (reemplaza al modal) -->
+            <div id="form-container" class="card mt-4" style="display: none;">
+                <div class="card-header">
+                    <h2 id="form-titulo" class="card-title"><i class="fas fa-plus-circle"></i> Nuevo Proveedor</h2>
+                </div>
+                <div class="card-content">
+                    <form id="form-proveedor" onsubmit="guardarProveedor(event)">
+                        <input type="hidden" id="proveedor-id">
+                        
+                        <div class="form-group">
+                            <label for="proveedor-nombre">
+                                <i class="fas fa-building"></i> Nombre de la Empresa:
+                            </label>
+                            <input type="text" id="proveedor-nombre" required placeholder="Nombre del proveedor">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="proveedor-telefono">
+                                <i class="fas fa-phone"></i> Teléfono:
+                            </label>
+                            <input type="text" id="proveedor-telefono" required placeholder="Número de teléfono">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="proveedor-direccion">
+                                <i class="fas fa-map-marker-alt"></i> Dirección:
+                            </label>
+                            <input type="text" id="proveedor-direccion" required placeholder="Dirección completa">
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="ocultarFormulario()">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container footer-content">
+            <p class="footer-text">© <span id="current-year"></span> Sistema de Punto de Venta. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Establecer el año actual en el footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
+        let proveedores = [];
+        let modoEdicion = false;
+        
+        // Cargar datos
+        function cargarDatos() {
+            document.getElementById('loading-proveedores').style.display = 'flex';
+            
+            fetch('api/datos.php')
+                .then(response => response.json())
+                .then(data => {
+                    // Ocultar indicador de carga
+                    document.getElementById('loading-proveedores').style.display = 'none';
+                    
+                    proveedores = data.proveedores;
+                    mostrarProveedores(proveedores);
+                })
+                .catch(error => {
+                    console.error('Error al cargar los datos:', error);
+                    document.getElementById('loading-proveedores').innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="color: var(--error)"></i>
+                        <span>Error al cargar los datos. Por favor, intenta de nuevo más tarde.</span>
+                    `;
+                });
+        }
+        
+        // Cargar datos al iniciar la página
+        cargarDatos();
+        
+        function mostrarProveedores(proveedoresArray) {
+            const proveedoresTable = document.getElementById('proveedores-table');
+            
+            if (proveedoresArray.length === 0) {
+                proveedoresTable.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center">No hay proveedores registrados</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            proveedoresTable.innerHTML = proveedoresArray.map(proveedor => `
+                <tr>
+                    <td>${proveedor.id_proveedor}</td>
+                    <td>${proveedor.nombre}</td>
+                    <td>
+                        <a href="tel:${proveedor.telefono}" class="text-primary">
+                            <i class="fas fa-phone"></i> ${proveedor.telefono}
+                        </a>
+                    </td>
+                    <td>${proveedor.direccion}</td>
+                    <td class="acciones">
+                        <button class="btn-icon btn-edit tooltip" onclick="editarProveedor(${proveedor.id_proveedor})">
+                            <i class="fas fa-edit"></i>
+                            <span class="tooltip-text">Editar</span>
+                        </button>
+                        <button class="btn-icon btn-delete tooltip" onclick="confirmarEliminar(${proveedor.id_proveedor}, '${proveedor.nombre}')">
+                            <i class="fas fa-trash"></i>
+                            <span class="tooltip-text">Eliminar</span>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function filtrarProveedores() {
+            const busqueda = document.getElementById('buscar-proveedor').value.toLowerCase();
+            const proveedoresFiltrados = proveedores.filter(proveedor => 
+                proveedor.nombre.toLowerCase().includes(busqueda) ||
+                proveedor.telefono.toLowerCase().includes(busqueda) ||
+                proveedor.direccion.toLowerCase().includes(busqueda)
+            );
+            mostrarProveedores(proveedoresFiltrados);
+        }
+        
+        // Funciones para el formulario
+        function mostrarFormularioCrear() {
+            modoEdicion = false;
+            document.getElementById('form-titulo').innerHTML = '<i class="fas fa-plus-circle"></i> Nuevo Proveedor';
+            document.getElementById('form-proveedor').reset();
+            document.getElementById('proveedor-id').value = '';
+            
+            // Mostrar el formulario
+            document.getElementById('form-container').style.display = 'block';
+            
+            // Desplazarse al formulario
+            document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function editarProveedor(id) {
+            modoEdicion = true;
+            const proveedor = proveedores.find(p => p.id_proveedor == id);
+            
+            if (proveedor) {
+                document.getElementById('form-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Proveedor';
+                document.getElementById('proveedor-id').value = proveedor.id_proveedor;
+                document.getElementById('proveedor-nombre').value = proveedor.nombre;
+                document.getElementById('proveedor-telefono').value = proveedor.telefono;
+                document.getElementById('proveedor-direccion').value = proveedor.direccion;
+                
+                // Mostrar el formulario
+                document.getElementById('form-container').style.display = 'block';
+                
+                // Desplazarse al formulario
+                document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        function ocultarFormulario() {
+            document.getElementById('form-container').style.display = 'none';
+        }
+        
+        function guardarProveedor(event) {
+            event.preventDefault();
+            
+            const proveedorData = {
+                id_proveedor: document.getElementById('proveedor-id').value,
+                nombre: document.getElementById('proveedor-nombre').value,
+                telefono: document.getElementById('proveedor-telefono').value,
+                direccion: document.getElementById('proveedor-direccion').value
+            };
+            
+            const url = modoEdicion ? 'api/actualizar-proveedor.php' : 'api/crear-proveedor.php';
+            
+            // Mostrar indicador de carga
+            Swal.fire({
+                title: 'Guardando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(proveedorData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    ocultarFormulario();
+                    cargarDatos(); // Recargar datos
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Ha ocurrido un error',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ha ocurrido un error en la comunicación con el servidor',
+                    confirmButtonColor: '#4f46e5'
+                });
+            });
+        }
+        
+        function confirmarEliminar(id, nombre) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                html: `¿Deseas eliminar el proveedor <strong>${nombre}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fas fa-trash"></i> Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    eliminarProveedor(id);
+                }
+            });
+        }
+        
+        function eliminarProveedor(id) {
+            // Mostrar indicador de carga
+            Swal.fire({
+                title: 'Eliminando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch('api/eliminar-proveedor.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id_proveedor: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    cargarDatos(); // Recargar datos
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Ha ocurrido un error',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ha ocurrido un error en la comunicación con el servidor',
+                    confirmButtonColor: '#4f46e5'
+                });
+            });
+        }
+    </script>
+</body>
+</html>
+
+
+
+

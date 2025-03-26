@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análisis de Ventas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 1000px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        canvas {
+            max-width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        form {
+            margin-top: 20px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background: #007bff;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .tab {
+            color: white;
+            cursor: pointer;
+            padding: 10px;
+        }
+        .tab:hover {
+            background: #0056b3;
+            border-radius: 5px;
+        }
+        .content {
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Análisis de Ventas</h2>
+        <div class="tabs">
+            <div class="tab" onclick="showTab('ventas')">Ventas</div>
+            <div class="tab" onclick="showTab('productos')">Productos</div>
+            <div class="tab" onclick="showTab('proveedores')">Proveedores</div>
+            <div class="tab" onclick="showTab('compras')">Compras a Proveedores</div>
+        </div>
+
+        <div id="ventas" class="content active">
+            <canvas id="salesChart"></canvas>
+            <h2>Registro de Ventas</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID Registro</th>
+                        <th>ID Venta</th>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Subtotal</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="ventasTable"></tbody>
+            </table>
+        </div>
+
+        <div id="productos" class="content">
+            <h2>Lista de Productos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>ID Proveedor</th>
+                    </tr>
+                </thead>
+                <tbody id="productosTable"></tbody>
+            </table>
+        </div>
+
+        <div id="proveedores" class="content">
+            <h2>Proveedores</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Teléfono</th>
+                        <th>Dirección</th>
+                    </tr>
+                </thead>
+                <tbody id="proveedoresTable"></tbody>
+            </table>
+        </div>
+
+        <div id="compras" class="content">
+            <h2>Compras a Proveedores</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID Compra</th>
+                        <th>ID Proveedor</th>
+                        <th>Fecha</th>
+                        <th>ID Producto</th>
+                        <th>Cantidad</th>
+                        <th>Costo Unitario</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="comprasTable"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabId) {
+            document.querySelectorAll('.content').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function fetchData() {
+            fetch('datos.php')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("ventasTable").innerHTML = data.ventas.map(v => `<tr><td>${v.id_registro}</td><td>${v.id_venta}</td><td>${v.fecha}</td><td>${v.producto}</td><td>${v.cantidad}</td><td>${v.subtotal}</td><td>${v.total}</td></tr>`).join('');
+                    document.getElementById("productosTable").innerHTML = data.productos.map(p => `<tr><td>${p.id_producto}</td><td>${p.nombre}</td><td>${p.precio}</td><td>${p.stock}</td><td>${p.id_proveedor}</td></tr>`).join('');
+                    document.getElementById("proveedoresTable").innerHTML = data.proveedores.map(p => `<tr><td>${p.id_proveedor}</td><td>${p.nombre}</td><td>${p.telefono}</td><td>${p.direccion}</td></tr>`).join('');
+                    document.getElementById("comprasTable").innerHTML = data.compras.map(c => `<tr><td>${c.id_compra}</td><td>${c.id_proveedor}</td><td>${c.fecha}</td><td>${c.id_producto}</td><td>${c.cantidad}</td><td>${c.costo_unitario}</td><td>${c.total}</td></tr>`).join('');
+                })
+                .catch(error => console.error("Error al obtener los datos:", error));
+        }
+
+        fetchData();
+    </script>
+</body>
+</html>
+

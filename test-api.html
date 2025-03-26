@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Sistema de Punto de Venta</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test de API - Sistema de Punto de Venta</h1>
+    
+    <button id="test-btn">Probar API</button>
+    
+    <h2>Respuesta:</h2>
+    <pre id="response">Haz clic en "Probar API" para ver la respuesta...</pre>
+    
+    <script>
+        document.getElementById('test-btn').addEventListener('click', function() {
+            const responseElement = document.getElementById('response');
+            responseElement.textContent = 'Cargando...';
+            
+            fetch('api/datos.php')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la respuesta del servidor: ' + response.status);
+                    }
+                    return response.text();
+                })
+                .then(text => {
+                    try {
+                        // Intentar parsear como JSON para formatear
+                        const json = JSON.parse(text);
+                        responseElement.textContent = JSON.stringify(json, null, 2);
+                    } catch (e) {
+                        // Si no es JSON válido, mostrar como texto
+                        responseElement.textContent = text;
+                    }
+                })
+                .catch(error => {
+                    responseElement.innerHTML = '<span class="error">Error: ' + error.message + '</span>';
+                });
+        });
+    </script>
+</body>
+</html>
+

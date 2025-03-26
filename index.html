@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Punto de Venta</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <i class="fas fa-cash-register"></i>
+                Sistema de Punto de Venta
+            </a>
+            <nav>
+                <a href="ventas.html" class="active">
+                    <i class="fas fa-chart-line"></i>
+                    Ventas
+                </a>
+                <a href="productos.html">
+                    <i class="fas fa-box"></i>
+                    Productos
+                </a>
+                <a href="proveedores.html">
+                    <i class="fas fa-truck"></i>
+                    Proveedores
+                </a>
+                <a href="compras.html">
+                    <i class="fas fa-shopping-cart"></i>
+                    Compras
+                </a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <section class="hero">
+                <h1>Sistema de Punto de Venta</h1>
+                <p>Gestiona tus ventas, productos, proveedores y compras de manera eficiente.</p>
+            </section>
+            
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Ventas</h2>
+                        <p class="card-description">Gestión de ventas</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="ventas.html" class="btn btn-primary btn-block">
+                            <i class="fas fa-chart-line"></i>
+                            Ver Ventas
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Productos</h2>
+                        <p class="card-description">Inventario de productos</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="productos.html" class="btn btn-primary btn-block">
+                            <i class="fas fa-list"></i>
+                            Ver Productos
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Proveedores</h2>
+                        <p class="card-description">Gestión de proveedores</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-icon">
+                            <i class="fas fa-truck"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="proveedores.html" class="btn btn-primary btn-block">
+                            <i class="fas fa-users"></i>
+                            Ver Proveedores
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Compras</h2>
+                        <p class="card-description">Compras a proveedores</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="card-icon">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="compras.html" class="btn btn-primary btn-block">
+                            <i class="fas fa-clipboard-list"></i>
+                            Ver Compras
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container footer-content">
+            <p class="footer-text">© <span id="current-year"></span> Sistema de Punto de Venta. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Establecer el año actual en el footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+    </script>
+</body>
+</html>
+
+

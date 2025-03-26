@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compras - Sistema de Punto de Venta</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SweetAlert2 para confirmaciones y alertas -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <i class="fas fa-cash-register"></i>
+                Sistema de Punto de Venta
+            </a>
+            <nav>
+                <a href="ventas.html">
+                    <i class="fas fa-chart-line"></i>
+                    Ventas
+                </a>
+                <a href="productos.html">
+                    <i class="fas fa-box"></i>
+                    Productos
+                </a>
+                <a href="proveedores.html">
+                    <i class="fas fa-truck"></i>
+                    Proveedores
+                </a>
+                <a href="compras.html" class="active">
+                    <i class="fas fa-shopping-cart"></i>
+                    Compras
+                </a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div class="action-bar">
+                <h2><i class="fas fa-shopping-cart"></i> Compras a Proveedores</h2>
+                <button class="btn btn-primary" onclick="mostrarFormularioCrear()">
+                    <i class="fas fa-plus"></i> Nueva Compra
+                </button>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('tabla-compras')">
+                    <i class="fas fa-table"></i> Tabla de Compras
+                </div>
+                <div class="tab" onclick="showTab('grafico-compras')">
+                    <i class="fas fa-chart-bar"></i> Gráfico de Compras
+                </div>
+            </div>
+            
+            <div id="tabla-compras" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Registro de Compras</h2>
+                        <div class="search-container">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="buscar-compra" placeholder="Buscar compra..." onkeyup="filtrarCompras()">
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="loading-compras" class="loading">
+                            <i class="fas fa-spinner"></i>
+                            <span>Cargando datos...</span>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID Compra</th>
+                                        <th>Proveedor</th>
+                                        <th>Fecha</th>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Costo Unitario</th>
+                                        <th>Total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="compras-table">
+                                    <!-- Los datos se cargarán dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="grafico-compras" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Gráfico de Compras por Proveedor</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-container">
+                            <canvas id="compras-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Formulario para crear/editar compra (reemplaza al modal) -->
+            <div id="form-container" class="card mt-4" style="display: none;">
+                <div class="card-header">
+                    <h2 id="form-titulo" class="card-title"><i class="fas fa-plus-circle"></i> Nueva Compra</h2>
+                </div>
+                <div class="card-content">
+                    <form id="form-compra" onsubmit="guardarCompra(event)">
+                        <input type="hidden" id="compra-id">
+                        
+                        <div class="form-group">
+                            <label for="compra-proveedor">
+                                <i class="fas fa-truck"></i> Proveedor:
+                            </label>
+                            <select id="compra-proveedor" required>
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="compra-fecha">
+                                <i class="fas fa-calendar-alt"></i> Fecha:
+                            </label>
+                            <input type="date" id="compra-fecha" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="compra-producto">
+                                <i class="fas fa-box"></i> Producto:
+                            </label>
+                            <select id="compra-producto" required>
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="compra-cantidad">
+                                <i class="fas fa-cubes"></i> Cantidad:
+                            </label>
+                            <input type="number" id="compra-cantidad" min="1" value="1" required onchange="calcularTotal()">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="compra-costo">
+                                <i class="fas fa-tag"></i> Costo Unitario:
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="compra-costo" step="0.01" min="0" required onchange="calcularTotal()">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="compra-total">
+                                <i class="fas fa-dollar-sign"></i> Total:
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="compra-total" step="0.01" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="ocultarFormulario()">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container footer-content">
+            <p class="footer-text">© <span id="current-year"></span> Sistema de Punto de Venta. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Establecer el año actual en el footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
+        let compras = [];
+        let productos = [];
+        let proveedores = [];
+        let modoEdicion = false;
+        let compraChart = null;
+        
+        // Función para mostrar/ocultar tabs
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
+            
+            // Ocultar el formulario al cambiar de tab
+            ocultarFormulario();
+        }
+        
+        // Cargar datos
+        function cargarDatos() {
+            document.getElementById('loading-compras').style.display = 'flex';
+            
+            fetch('api/datos.php')
+                .then(response => response.json())
+                .then(data => {
+                    // Ocultar indicador de carga
+                    document.getElementById('loading-compras').style.display = 'none';
+                    
+                    compras = data.compras;
+                    productos = data.productos;
+                    proveedores = data.proveedores;
+                    mostrarCompras(compras);
+                    crearGrafico(compras);
+                    
+                    // Cargar proveedores en el select
+                    const selectProveedor = document.getElementById('compra-proveedor');
+                    selectProveedor.innerHTML = '<option value="">Seleccione un proveedor</option>' + 
+                        proveedores.map(proveedor => 
+                        `<option value="${proveedor.id_proveedor}">${proveedor.nombre}</option>`
+                    ).join('');
+                    
+                    // Cargar productos en el select
+                    const selectProducto = document.getElementById('compra-producto');
+                    selectProducto.innerHTML = '<option value="">Seleccione un producto</option>' + 
+                        productos.map(producto => 
+                        `<option value="${producto.id_producto}">${producto.nombre}</option>`
+                    ).join('');
+                    
+                    // Establecer fecha actual por defecto
+                    document.getElementById('compra-fecha').valueAsDate = new Date();
+                    
+                    // Establecer costo unitario predeterminado
+                    document.getElementById('compra-costo').value = '0.00';
+                    calcularTotal();
+                })
+                .catch(error => {
+                    console.error('Error al cargar los datos:', error);
+                    document.getElementById('loading-compras').innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="color: var(--error)"></i>
+                        <span>Error al cargar los datos. Por favor, intenta de nuevo más tarde.</span>
+                    `;
+                });
+        }
+        
+        // Cargar datos al iniciar la página
+        cargarDatos();
+        
+        function mostrarCompras(comprasArray) {
+            const comprasTable = document.getElementById('compras-table');
+            
+            if (comprasArray.length === 0) {
+                comprasTable.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center">No hay compras registradas</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            comprasTable.innerHTML = comprasArray.map(compra => {
+                // Encontrar el nombre del proveedor
+                const proveedor = proveedores.find(p => p.id_proveedor == compra.id_proveedor);
+                const nombreProveedor = proveedor ? proveedor.nombre : `Proveedor ${compra.id_proveedor}`;
+                
+                // Encontrar el nombre del producto
+                const producto = productos.find(p => p.id_producto == compra.id_producto);
+                const nombreProducto = producto ? producto.nombre : `Producto ${compra.id_producto}`;
+                
+                return `
+                <tr>
+                    <td>${compra.id_compra}</td>
+                    <td>${nombreProveedor}</td>
+                    <td>${compra.fecha}</td>
+                    <td>${nombreProducto}</td>
+                    <td>${compra.cantidad}</td>
+                    <td>$${parseFloat(compra.costo_unitario).toFixed(2)}</td>
+                    <td>$${parseFloat(compra.total).toFixed(2)}</td>
+                    <td class="acciones">
+                        <button class="btn-icon btn-edit tooltip" onclick="editarCompra(${compra.id_compra})">
+                            <i class="fas fa-edit"></i>
+                            <span class="tooltip-text">Editar</span>
+                        </button>
+                        <button class="btn-icon btn-delete tooltip" onclick="confirmarEliminar(${compra.id_compra})">
+                            <i class="fas fa-trash"></i>
+                            <span class="tooltip-text">Eliminar</span>
+                        </button>
+                    </td>
+                </tr>
+            `}).join('');
+        }
+        
+        function filtrarCompras() {
+            const busqueda = document.getElementById('buscar-compra').value.toLowerCase();
+            
+            // Filtrar compras por proveedor o producto
+            const comprasFiltradas = compras.filter(compra => {
+                const proveedor = proveedores.find(p => p.id_proveedor == compra.id_proveedor);
+                const nombreProveedor = proveedor ? proveedor.nombre.toLowerCase() : '';
+                
+                const producto = productos.find(p => p.id_producto == compra.id_producto);
+                const nombreProducto = producto ? producto.nombre.toLowerCase() : '';
+                
+                return nombreProveedor.includes(busqueda) || 
+                       nombreProducto.includes(busqueda) || 
+                       compra.fecha.toLowerCase().includes(busqueda);
+            });
+            
+            mostrarCompras(comprasFiltradas);
+        }
+        
+        function crearGrafico(comprasArray) {
+            // Agrupar compras por proveedor
+            const comprasPorProveedor = {};
+            comprasArray.forEach(compra => {
+                const proveedorId = compra.id_proveedor;
+                const proveedor = proveedores.find(p => p.id_proveedor == proveedorId);
+                const nombreProveedor = proveedor ? proveedor.nombre : `Proveedor ${proveedorId}`;
+                
+                if (comprasPorProveedor[nombreProveedor]) {
+                    comprasPorProveedor[nombreProveedor] += parseFloat(compra.total);
+                } else {
+                    comprasPorProveedor[nombreProveedor] = parseFloat(compra.total);
+                }
+            });
+            
+            const ctx = document.getElementById('compras-chart').getContext('2d');
+            
+            // Destruir gráfico anterior si existe
+            if (compraChart) {
+                compraChart.destroy();
+            }
+            
+            compraChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(comprasPorProveedor),
+                    datasets: [{
+                        label: 'Total de Compras',
+                        data: Object.values(comprasPorProveedor),
+                        backgroundColor: '#10b981',
+                        borderColor: '#059669',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Funciones para el formulario
+        function mostrarFormularioCrear() {
+            modoEdicion = false;
+            document.getElementById('form-titulo').innerHTML = '<i class="fas fa-plus-circle"></i> Nueva Compra';
+            document.getElementById('form-compra').reset();
+            document.getElementById('compra-id').value = '';
+            
+            // Establecer fecha actual
+            document.getElementById('compra-fecha').valueAsDate = new Date();
+            
+            // Establecer costo unitario predeterminado
+            document.getElementById('compra-costo').value = '0.00';
+            calcularTotal();
+            
+            // Mostrar el formulario
+            document.getElementById('form-container').style.display = 'block';
+            
+            // Desplazarse al formulario
+            document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function editarCompra(id) {
+            modoEdicion = true;
+            const compra = compras.find(c => c.id_compra == id);
+            
+            if (compra) {
+                document.getElementById('form-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Compra';
+                document.getElementById('compra-id').value = compra.id_compra;
+                document.getElementById('compra-proveedor').value = compra.id_proveedor;
+                document.getElementById('compra-fecha').value = compra.fecha;
+                document.getElementById('compra-producto').value = compra.id_producto;
+                document.getElementById('compra-cantidad').value = compra.cantidad;
+                document.getElementById('compra-costo').value = compra.costo_unitario;
+                calcularTotal();
+                
+                // Mostrar el formulario
+                document.getElementById('form-container').style.display = 'block';
+                
+                // Desplazarse al formulario
+                document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        function ocultarFormulario() {
+            document.getElementById('form-container').style.display = 'none';
+        }
+        
+        function calcularTotal() {
+            const costo = parseFloat(document.getElementById('compra-costo').value) || 0;
+            const cantidad = parseInt(document.getElementById('compra-cantidad').value) || 0;
+            const total = costo * cantidad;
+            
+            document.getElementById('compra-total').value = total.toFixed(2);
+        }
+        
+        function guardarCompra(event) {
+            event.preventDefault();
+            
+            const compraData = {
+                id_compra: document.getElementById('compra-id').value,
+                id_proveedor: document.getElementById('compra-proveedor').value,
+                fecha: document.getElementById('compra-fecha').value,
+                id_producto: document.getElementById('compra-producto').value,
+                cantidad: document.getElementById('compra-cantidad').value,
+                costo_unitario: document.getElementById('compra-costo').value
+            };
+            
+            // Validar que se haya seleccionado un proveedor y un producto
+            if (!compraData.id_proveedor) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Debe seleccionar un proveedor',
+                    confirmButtonColor: '#4f46e5'
+                });
+                return;
+            }
+            
+            if (!compraData.id_producto) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Debe seleccionar un producto',
+                    confirmButtonColor: '#4f46e5'
+                });
+                return;
+            }
+            
+            const url = modoEdicion ? 'api/actualizar-compra.php' : 'api/crear-compra.php';
+            
+            // Mostrar indicador de carga
+            Swal.fire({
+                title: 'Guardando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(compraData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    ocultarFormulario();
+                    cargarDatos(); // Recargar datos
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Ha ocurrido un error',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ha ocurrido un error en la comunicación con el servidor',
+                    confirmButtonColor: '#4f46e5'
+                });
+            });
+        }
+        
+        function confirmarEliminar(id) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                html: `¿Deseas eliminar la compra <strong>#${id}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fas fa-trash"></i> Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    eliminarCompra(id);
+                }
+            });
+        }
+        
+        function eliminarCompra(id) {
+            // Mostrar indicador de carga
+            Swal.fire({
+                title: 'Eliminando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch('api/eliminar-compra.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id_compra: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    cargarDatos(); // Recargar datos
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Ha ocurrido un error',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ha ocurrido un error en la comunicación con el servidor',
+                    confirmButtonColor: '#4f46e5'
+                });
+            });
+        }
+    </script>
+</body>
+</html>
+
+
+
+

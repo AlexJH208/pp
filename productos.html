@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Productos - Sistema de Punto de Venta</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- SweetAlert2 para confirmaciones y alertas -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <header>
+      <div class="container header-content">
+          <a href="index.html" class="logo">
+              <i class="fas fa-cash-register"></i>
+              Sistema de Punto de Venta
+          </a>
+          <nav>
+              <a href="ventas.html">
+                  <i class="fas fa-chart-line"></i>
+                  Ventas
+              </a>
+              <a href="productos.html" class="active">
+                  <i class="fas fa-box"></i>
+                  Productos
+              </a>
+              <a href="proveedores.html">
+                  <i class="fas fa-truck"></i>
+                  Proveedores
+              </a>
+              <a href="compras.html">
+                  <i class="fas fa-shopping-cart"></i>
+                  Compras
+              </a>
+          </nav>
+      </div>
+  </header>
+  
+  <main>
+      <div class="container">
+          <div class="action-bar">
+              <h2><i class="fas fa-box"></i> Gestión de Productos</h2>
+              <button class="btn btn-primary" onclick="mostrarFormularioCrear()">
+                  <i class="fas fa-plus"></i> Nuevo Producto
+              </button>
+          </div>
+          
+          <div class="card">
+              <div class="card-header">
+                  <h2 class="card-title">Lista de Productos</h2>
+                  <div class="search-container">
+                      <i class="fas fa-search"></i>
+                      <input type="text" id="buscar-producto" placeholder="Buscar producto..." onkeyup="filtrarProductos()">
+                  </div>
+              </div>
+              <div class="card-content">
+                  <div id="loading-productos" class="loading">
+                      <i class="fas fa-spinner"></i>
+                      <span>Cargando datos...</span>
+                  </div>
+                  <div class="table-container">
+                      <table>
+                          <thead>
+                              <tr>
+                                  <th>ID</th>
+                                  <th>Nombre</th>
+                                  <th>Precio</th>
+                                  <th>Stock</th>
+                                  <th>Proveedor</th>
+                                  <th>Acciones</th>
+                              </tr>
+                          </thead>
+                          <tbody id="productos-table">
+                              <!-- Los datos se cargarán dinámicamente -->
+                          </tbody>
+                      </table>
+                  </div>
+              </div>
+          </div>
+          
+          <!-- Formulario para crear/editar producto (reemplaza al modal) -->
+          <div id="form-container" class="card mt-4" style="display: none;">
+              <div class="card-header">
+                  <h2 id="form-titulo" class="card-title"><i class="fas fa-plus-circle"></i> Nuevo Producto</h2>
+              </div>
+              <div class="card-content">
+                  <form id="form-producto" onsubmit="guardarProducto(event)">
+                      <input type="hidden" id="producto-id">
+                      
+                      <div class="form-group">
+                          <label for="producto-nombre">
+                              <i class="fas fa-tag"></i> Nombre del Producto:
+                          </label>
+                          <input type="text" id="producto-nombre" required placeholder="Ingrese el nombre del producto">
+                      </div>
+                      
+                      <div class="form-group">
+                          <label for="producto-precio">
+                              <i class="fas fa-dollar-sign"></i> Precio:
+                          </label>
+                          <div class="input-group">
+                              <span class="input-group-text">$</span>
+                              <input type="number" id="producto-precio" step="0.01" min="0" required placeholder="0.00">
+                          </div>
+                      </div>
+                      
+                      <div class="form-group">
+                          <label for="producto-stock">
+                              <i class="fas fa-cubes"></i> Stock:
+                          </label>
+                          <input type="number" id="producto-stock" min="0" required placeholder="Cantidad disponible">
+                      </div>
+                      
+                      <div class="form-group">
+                          <label for="producto-proveedor">
+                              <i class="fas fa-truck"></i> Proveedor:
+                          </label>
+                          <select id="producto-proveedor" required>
+                              <!-- Las opciones se cargarán dinámicamente -->
+                          </select>
+                      </div>
+                      
+                      <div class="form-actions">
+                          <button type="button" class="btn btn-secondary" onclick="ocultarFormulario()">
+                              <i class="fas fa-times"></i> Cancelar
+                          </button>
+                          <button type="submit" class="btn btn-primary">
+                              <i class="fas fa-save"></i> Guardar
+                          </button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      </div>
+  </main>
+  
+  <footer>
+      <div class="container footer-content">
+          <p class="footer-text">© <span id="current-year"></span> Sistema de Punto de Venta. Todos los derechos reservados.</p>
+      </div>
+  </footer>
+  
+  <script>
+      // Establecer el año actual en el footer
+      document.getElementById('current-year').textContent = new Date().getFullYear();
+      
+      let productos = [];
+      let proveedores = [];
+      let modoEdicion = false;
+      
+      // Cargar datos
+      function cargarDatos() {
+          document.getElementById('loading-productos').style.display = 'flex';
+          
+          fetch('api/datos.php')
+              .then(response => response.json())
+              .then(data => {
+                  // Ocultar indicador de carga
+                  document.getElementById('loading-productos').style.display = 'none';
+                  
+                  productos = data.productos;
+                  proveedores = data.proveedores;
+                  mostrarProductos(productos);
+                  
+                  // Cargar proveedores en el select
+                  const selectProveedor = document.getElementById('producto-proveedor');
+                  selectProveedor.innerHTML = '<option value="">Seleccione un proveedor</option>' + 
+                      proveedores.map(proveedor => 
+                      `<option value="${proveedor.id_proveedor}">${proveedor.nombre}</option>`
+                  ).join('');
+              })
+              .catch(error => {
+                  console.error('Error al cargar los datos:', error);
+                  document.getElementById('loading-productos').innerHTML = `
+                      <i class="fas fa-exclamation-triangle" style="color: var(--error)"></i>
+                      <span>Error al cargar los datos. Por favor, intenta de nuevo más tarde.</span>
+                  `;
+              });
+      }
+      
+      // Cargar datos al iniciar la página
+      cargarDatos();
+      
+      function mostrarProductos(productosArray) {
+          const productosTable = document.getElementById('productos-table');
+          
+          if (productosArray.length === 0) {
+              productosTable.innerHTML = `
+                  <tr>
+                      <td colspan="6" class="text-center">No hay productos registrados</td>
+                  </tr>
+              `;
+              return;
+          }
+          
+          productosTable.innerHTML = productosArray.map(producto => {
+              // Encontrar el nombre del proveedor
+              const proveedor = proveedores.find(p => p.id_proveedor == producto.id_proveedor);
+              const nombreProveedor = proveedor ? proveedor.nombre : `Proveedor ${producto.id_proveedor}`;
+              
+              // Determinar clase para el stock
+              let stockClass = '';
+              if (producto.stock <= 5) {
+                  stockClass = 'text-error';
+              } else if (producto.stock <= 10) {
+                  stockClass = 'text-warning';
+              }
+              
+              return `
+              <tr>
+                  <td>${producto.id_producto}</td>
+                  <td>${producto.nombre}</td>
+                  <td>$${parseFloat(producto.precio).toFixed(2)}</td>
+                  <td class="${stockClass}">${producto.stock}</td>
+                  <td>${nombreProveedor}</td>
+                  <td class="acciones">
+                      <button class="btn-icon btn-edit tooltip" onclick="editarProducto(${producto.id_producto})">
+                          <i class="fas fa-edit"></i>
+                          <span class="tooltip-text">Editar</span>
+                      </button>
+                      <button class="btn-icon btn-delete tooltip" onclick="confirmarEliminar(${producto.id_producto}, '${producto.nombre}')">
+                          <i class="fas fa-trash"></i>
+                          <span class="tooltip-text">Eliminar</span>
+                      </button>
+                  </td>
+              </tr>
+          `}).join('');
+      }
+      
+      function filtrarProductos() {
+          const busqueda = document.getElementById('buscar-producto').value.toLowerCase();
+          const productosFiltrados = productos.filter(producto => 
+              producto.nombre.toLowerCase().includes(busqueda)
+          );
+          mostrarProductos(productosFiltrados);
+      }
+      
+      // Funciones para el formulario
+      function mostrarFormularioCrear() {
+          modoEdicion = false;
+          document.getElementById('form-titulo').innerHTML = '<i class="fas fa-plus-circle"></i> Nuevo Producto';
+          document.getElementById('form-producto').reset();
+          document.getElementById('producto-id').value = '';
+          
+          // Mostrar el formulario
+          document.getElementById('form-container').style.display = 'block';
+          
+          // Desplazarse al formulario
+          document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+      }
+      
+      function editarProducto(id) {
+          modoEdicion = true;
+          const producto = productos.find(p => p.id_producto == id);
+          
+          if (producto) {
+              document.getElementById('form-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Producto';
+              document.getElementById('producto-id').value = producto.id_producto;
+              document.getElementById('producto-nombre').value = producto.nombre;
+              document.getElementById('producto-precio').value = producto.precio;
+              document.getElementById('producto-stock').value = producto.stock;
+              document.getElementById('producto-proveedor').value = producto.id_proveedor;
+              
+              // Mostrar el formulario
+              document.getElementById('form-container').style.display = 'block';
+              
+              // Desplazarse al formulario
+              document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+          }
+      }
+      
+      function ocultarFormulario() {
+          document.getElementById('form-container').style.display = 'none';
+      }
+      
+      function guardarProducto(event) {
+          event.preventDefault();
+          
+          const productoData = {
+              id_producto: document.getElementById('producto-id').value,
+              nombre: document.getElementById('producto-nombre').value,
+              precio: document.getElementById('producto-precio').value,
+              stock: document.getElementById('producto-stock').value,
+              id_proveedor: document.getElementById('producto-proveedor').value
+          };
+          
+          const url = modoEdicion ? 'api/actualizar-producto.php' : 'api/crear-producto.php';
+          
+          // Mostrar indicador de carga
+          Swal.fire({
+              title: 'Guardando...',
+              text: 'Por favor espere',
+              allowOutsideClick: false,
+              didOpen: () => {
+                  Swal.showLoading();
+              }
+          });
+          
+          fetch(url, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(productoData)
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'Éxito',
+                      text: data.message,
+                      confirmButtonColor: '#4f46e5'
+                  });
+                  ocultarFormulario();
+                  cargarDatos(); // Recargar datos
+              } else {
+                  Swal.fire({
+                      icon: 'error',
+                      title: 'Error',
+                      text: data.message || 'Ha ocurrido un error',
+                      confirmButtonColor: '#4f46e5'
+                  });
+              }
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: 'Ha ocurrido un error en la comunicación con el servidor',
+                  confirmButtonColor: '#4f46e5'
+              });
+          });
+      }
+      
+      function confirmarEliminar(id, nombre) {
+          Swal.fire({
+              title: '¿Estás seguro?',
+              html: `¿Deseas eliminar el producto <strong>${nombre}</strong>?`,
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#ef4444',
+              cancelButtonColor: '#64748b',
+              confirmButtonText: '<i class="fas fa-trash"></i> Sí, eliminar',
+              cancelButtonText: 'Cancelar'
+          }).then((result) => {
+              if (result.isConfirmed) {
+                  eliminarProducto(id);
+              }
+          });
+      }
+      
+      function eliminarProducto(id) {
+          // Mostrar indicador de carga
+          Swal.fire({
+              title: 'Eliminando...',
+              text: 'Por favor espere',
+              allowOutsideClick: false,
+              didOpen: () => {
+                  Swal.showLoading();
+              }
+          });
+          
+          fetch('api/eliminar-producto.php', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ id_producto: id })
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  Swal.fire({
+                      icon: 'success',
+                      title: 'Éxito',
+                      text: data.message,
+                      confirmButtonColor: '#4f46e5'
+                  });
+                  cargarDatos(); // Recargar datos
+              } else {
+                  Swal.fire({
+                      icon: 'error',
+                      title: 'Error',
+                      text: data.message || 'Ha ocurrido un error',
+                      confirmButtonColor: '#4f46e5'
+                  });
+              }
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: 'Ha ocurrido un error en la comunicación con el servidor',
+                  confirmButtonColor: '#4f46e5'
+              });
+          });
+      }
+  </script>
+</body>
+</html>
+
+
+
+

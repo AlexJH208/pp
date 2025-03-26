@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas - Sistema de Punto de Venta</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SweetAlert2 para confirmaciones y alertas -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <a href="index.html" class="logo">
+                <i class="fas fa-cash-register"></i>
+                Sistema de Punto de Venta
+            </a>
+            <nav>
+                <a href="ventas.html" class="active">
+                    <i class="fas fa-chart-line"></i>
+                    Ventas
+                </a>
+                <a href="productos.html">
+                    <i class="fas fa-box"></i>
+                    Productos
+                </a>
+                <a href="proveedores.html">
+                    <i class="fas fa-truck"></i>
+                    Proveedores
+                </a>
+                <a href="compras.html">
+                    <i class="fas fa-shopping-cart"></i>
+                    Compras
+                </a>
+            </nav>
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div class="action-bar">
+                <h2><i class="fas fa-chart-line"></i> Análisis de Ventas</h2>
+                <button class="btn btn-primary" onclick="mostrarFormularioCrear()">
+                    <i class="fas fa-plus"></i> Nueva Venta
+                </button>
+            </div>
+            
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('tabla-ventas')">
+                    <i class="fas fa-table"></i> Tabla de Ventas
+                </div>
+                <div class="tab" onclick="showTab('grafico-ventas')">
+                    <i class="fas fa-chart-bar"></i> Gráfico de Ventas
+                </div>
+            </div>
+            
+            <div id="tabla-ventas" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Registro de Ventas</h2>
+                        <div class="search-container">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="buscar-venta" placeholder="Buscar venta..." onkeyup="filtrarVentas()">
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div id="loading-ventas" class="loading">
+                            <i class="fas fa-spinner"></i>
+                            <span>Cargando datos...</span>
+                        </div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID Registro</th>
+                                        <th>ID Venta</th>
+                                        <th>Fecha</th>
+                                        <th>Producto</th>
+                                        <th>Cantidad</th>
+                                        <th>Subtotal</th>
+                                        <th>Total</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ventas-table">
+                                    <!-- Los datos se cargarán dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="grafico-ventas" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Gráfico de Ventas por Producto</h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-container">
+                            <canvas id="ventas-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Formulario para crear/editar venta (reemplaza al modal) -->
+            <div id="form-container" class="card mt-4" style="display: none;">
+                <div class="card-header">
+                    <h2 id="form-titulo" class="card-title"><i class="fas fa-plus-circle"></i> Nueva Venta</h2>
+                </div>
+                <div class="card-content">
+                    <form id="form-venta" onsubmit="guardarVenta(event)">
+                        <input type="hidden" id="venta-id">
+                        
+                        <div class="form-group">
+                            <label for="venta-codigo">
+                                <i class="fas fa-hashtag"></i> Código de Venta:
+                            </label>
+                            <input type="text" id="venta-codigo" required placeholder="Código único de venta">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="venta-fecha">
+                                <i class="fas fa-calendar-alt"></i> Fecha:
+                            </label>
+                            <input type="date" id="venta-fecha" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="venta-producto">
+                                <i class="fas fa-box"></i> Producto:
+                            </label>
+                            <select id="venta-producto" required onchange="actualizarPrecio()">
+                                <!-- Las opciones se cargarán dinámicamente -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="venta-cantidad">
+                                <i class="fas fa-cubes"></i> Cantidad:
+                            </label>
+                            <input type="number" id="venta-cantidad" min="1" value="1" required onchange="calcularTotal()">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="venta-precio">
+                                <i class="fas fa-tag"></i> Precio Unitario:
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="venta-precio" step="0.01" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="venta-total">
+                                <i class="fas fa-dollar-sign"></i> Total:
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="venta-total" step="0.01" readonly>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="ocultarFormulario()">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container footer-content">
+            <p class="footer-text">© <span id="current-year"></span> Sistema de Punto de Venta. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+    
+    <script>
+        // Establecer el año actual en el footer
+        document.getElementById('current-year').textContent = new Date().getFullYear();
+        
+        let ventas = [];
+        let productos = [];
+        let modoEdicion = false;
+        let ventaChart = null;
+        
+        // Función para mostrar/ocultar tabs
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
+            
+            // Ocultar el formulario al cambiar de tab
+            ocultarFormulario();
+        }
+        
+        // Cargar datos
+        function cargarDatos() {
+            document.getElementById('loading-ventas').style.display = 'flex';
+            
+            fetch('api/datos.php')
+                .then(response => response.json())
+                .then(data => {
+                    // Ocultar indicador de carga
+                    document.getElementById('loading-ventas').style.display = 'none';
+                    
+                    ventas = data.ventas;
+                    productos = data.productos;
+                    mostrarVentas(ventas);
+                    crearGrafico(ventas);
+                    
+                    // Cargar productos en el select
+                    const selectProducto = document.getElementById('venta-producto');
+                    selectProducto.innerHTML = '<option value="">Seleccione un producto</option>' + 
+                        productos.map(producto => 
+                        `<option value="${producto.id_producto}" data-precio="${producto.precio}">${producto.nombre}</option>`
+                    ).join('');
+                    
+                    // Establecer fecha actual por defecto
+                    document.getElementById('venta-fecha').valueAsDate = new Date();
+                    
+                    // Actualizar precio al cargar
+                    actualizarPrecio();
+                })
+                .catch(error => {
+                    console.error('Error al cargar los datos:', error);
+                    document.getElementById('loading-ventas').innerHTML = `
+                        <i class="fas fa-exclamation-triangle" style="color: var(--error)"></i>
+                        <span>Error al cargar los datos. Por favor, intenta de nuevo más tarde.</span>
+                    `;
+                });
+        }
+        
+        // Cargar datos al iniciar la página
+        cargarDatos();
+        
+        function mostrarVentas(ventasArray) {
+            const ventasTable = document.getElementById('ventas-table');
+            
+            if (ventasArray.length === 0) {
+                ventasTable.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center">No hay ventas registradas</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            ventasTable.innerHTML = ventasArray.map(venta => `
+                <tr>
+                    <td>${venta.id_registro}</td>
+                    <td>${venta.id_venta}</td>
+                    <td>${venta.fecha}</td>
+                    <td>${venta.producto}</td>
+                    <td>${venta.cantidad}</td>
+                    <td>$${parseFloat(venta.subtotal).toFixed(2)}</td>
+                    <td>$${parseFloat(venta.total).toFixed(2)}</td>
+                    <td class="acciones">
+                        <button class="btn-icon btn-edit tooltip" onclick="editarVenta(${venta.id_registro})">
+                            <i class="fas fa-edit"></i>
+                            <span class="tooltip-text">Editar</span>
+                        </button>
+                        <button class="btn-icon btn-delete tooltip" onclick="confirmarEliminar(${venta.id_registro}, '${venta.id_venta}')">
+                            <i class="fas fa-trash"></i>
+                            <span class="tooltip-text">Eliminar</span>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        function filtrarVentas() {
+            const busqueda = document.getElementById('buscar-venta').value.toLowerCase();
+            const ventasFiltradas = ventas.filter(venta => 
+                venta.id_venta.toLowerCase().includes(busqueda) || 
+                venta.producto.toLowerCase().includes(busqueda)
+            );
+            mostrarVentas(ventasFiltradas);
+        }
+        
+        function crearGrafico(ventasArray) {
+            // Agrupar ventas por producto
+            const ventasPorProducto = {};
+            ventasArray.forEach(venta => {
+                if (ventasPorProducto[venta.producto]) {
+                    ventasPorProducto[venta.producto] += parseFloat(venta.total);
+                } else {
+                    ventasPorProducto[venta.producto] = parseFloat(venta.total);
+                }
+            });
+            
+            const ctx = document.getElementById('ventas-chart').getContext('2d');
+            
+            // Destruir gráfico anterior si existe
+            if (ventaChart) {
+                ventaChart.destroy();
+            }
+            
+            ventaChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: Object.keys(ventasPorProducto),
+        datasets: [{
+            label: 'Total de Ventas',
+            data: Object.values(ventasPorProducto),
+            backgroundColor: '#4f46e5',
+            borderColor: '#4338ca',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        if (context.parsed.y !== null) {
+                            label += new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(context.parsed.y);
+                        }
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return '$' + value;
+                    }
+                }
+            }
+        }
+    }
+});
+
+        }
+        
+        // Funciones para el formulario
+        function mostrarFormularioCrear() {
+            modoEdicion = false;
+            document.getElementById('form-titulo').innerHTML = '<i class="fas fa-plus-circle"></i> Nueva Venta';
+            document.getElementById('form-venta').reset();
+            document.getElementById('venta-id').value = '';
+            
+            // Generar código de venta automático
+            const fechaActual = new Date();
+            const codigoVenta = 'V' + fechaActual.getFullYear().toString().substr(-2) + 
+                                (fechaActual.getMonth() + 1).toString().padStart(2, '0') + 
+                                fechaActual.getDate().toString().padStart(2, '0') + 
+                                Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            document.getElementById('venta-codigo').value = codigoVenta;
+            
+            // Establecer fecha actual
+            document.getElementById('venta-fecha').valueAsDate = new Date();
+            
+            // Actualizar precio y total
+            actualizarPrecio();
+            
+            // Mostrar el formulario
+            document.getElementById('form-container').style.display = 'block';
+            
+            // Desplazarse al formulario
+            document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function editarVenta(id) {
+            modoEdicion = true;
+            const venta = ventas.find(v => v.id_registro == id);
+            
+            if (venta) {
+                document.getElementById('form-titulo').innerHTML = '<i class="fas fa-edit"></i> Editar Venta';
+                document.getElementById('venta-id').value = venta.id_registro;
+                document.getElementById('venta-codigo').value = venta.id_venta;
+                document.getElementById('venta-fecha').value = venta.fecha;
+                
+                // Buscar el id_producto basado en el nombre del producto
+                const producto = productos.find(p => p.nombre === venta.producto);
+                if (producto) {
+                    document.getElementById('venta-producto').value = producto.id_producto;
+                }
+                
+                document.getElementById('venta-cantidad').value = venta.cantidad;
+                actualizarPrecio();
+                
+                // Mostrar el formulario
+                document.getElementById('form-container').style.display = 'block';
+                
+                // Desplazarse al formulario
+                document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+        
+        function ocultarFormulario() {
+            document.getElementById('form-container').style.display = 'none';
+        }
+        
+        function actualizarPrecio() {
+            const selectProducto = document.getElementById('venta-producto');
+            const selectedOption = selectProducto.options[selectProducto.selectedIndex];
+            const precio = selectedOption && selectedOption.dataset.precio ? parseFloat(selectedOption.dataset.precio) : 0;
+            
+            document.getElementById('venta-precio').value = precio.toFixed(2);
+            calcularTotal();
+        }
+        
+        function calcularTotal() {
+            const precio = parseFloat(document.getElementById('venta-precio').value) || 0;
+            const cantidad = parseInt(document.getElementById('venta-cantidad').value) || 0;
+            const total = precio * cantidad;
+            
+            document.getElementById('venta-total').value = total.toFixed(2);
+        }
+        
+        function guardarVenta(event) {
+            event.preventDefault();
+            
+            const ventaData = {
+                id_registro: document.getElementById('venta-id').value,
+                id_venta: document.getElementById('venta-codigo').value,
+                fecha: document.getElementById('venta-fecha').value,
+                id_producto: document.getElementById('venta-producto').value,
+                cantidad: document.getElementById('venta-cantidad').value
+            };
+            
+            // Validar que se haya seleccionado un producto
+            if (!ventaData.id_producto) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Debe seleccionar un producto',
+                    confirmButtonColor: '#4f46e5'
+                });
+                return;
+            }
+            
+            const url = modoEdicion ? 'api/actualizar-venta.php' : 'api/crear-venta.php';
+            
+            // Mostrar indicador de carga
+            Swal.fire({
+                title: 'Guardando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(ventaData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    ocultarFormulario();
+                    cargarDatos(); // Recargar datos
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Ha ocurrido un error',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ha ocurrido un error en la comunicación con el servidor',
+                    confirmButtonColor: '#4f46e5'
+                });
+            });
+        }
+        
+        function confirmarEliminar(id, codigo) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                html: `¿Deseas eliminar la venta <strong>${codigo}</strong>?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fas fa-trash"></i> Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    eliminarVenta(id);
+                }
+            });
+        }
+        
+        function eliminarVenta(id) {
+            // Mostrar indicador de carga
+            Swal.fire({
+                title: 'Eliminando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch('api/eliminar-venta.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id_registro: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Éxito',
+                        text: data.message,
+                        confirmButtonColor: '#4f46e5'
+                    });
+                    cargarDatos(); // Recargar datos
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Ha ocurrido un error',
+                        confirmButtonColor: '#4f46e5'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ha ocurrido un error en la comunicación con el servidor',
+                    confirmButtonColor: '#4f46e5'
+                });
+            });
+        }
+    </script>
+</body>
+</html>
+
+
+
+
